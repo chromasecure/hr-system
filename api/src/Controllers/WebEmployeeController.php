@@ -56,6 +56,8 @@ class WebEmployeeController
     public function createPending(): void
     {
         $user = WebAuth::authenticate($this->pdo, $this->jwt, ['branch', 'super_admin']);
+        $body = json_decode(file_get_contents('php://input'), true) ?: [];
+
         $branchId = (int)($user['branch_id'] ?? 0);
         if ($branchId === 0 && !empty($body['branch_id'])) {
             $branchId = (int)$body['branch_id']; // allow super admin to target a branch
@@ -64,7 +66,6 @@ class WebEmployeeController
             Response::error('No branch assigned to user.', 400);
         }
 
-        $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $name = trim($body['name'] ?? '');
         $code = trim($body['employee_code'] ?? '');
         $imageB64 = $body['image'] ?? '';
