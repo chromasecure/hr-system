@@ -79,7 +79,18 @@ try {
 });
 
 
-    $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
+    // Normalize URI so routes don't include /api/public prefix
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// Remove the base path (/api/public)
+$basePath = '/api/public';
+if (strpos($uri, $basePath) === 0) {
+    $uri = substr($uri, strlen($basePath));
+}
+
+// Dispatch using the cleaned path, e.g. /api/web/login
+$router->dispatch($_SERVER['REQUEST_METHOD'], $uri ?: '/');
+
 } catch (Throwable $e) {
     Response::error('Server error: ' . $e->getMessage(), 500);
 }
