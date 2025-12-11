@@ -39,36 +39,32 @@ class WebBranchController {
         Response::ok(['logs' => $logs]);
     }
 
-    public function myEmployees(): void {
-    // Allow both super_admin and branch_manager
+    public function myEmployees(): void
+{
+    // Allow both super_admin and branch users
     $user = WebAuth::authenticate(
         $this->pdo,
         $this->jwt,
-        ['super_admin', 'branch_manager']
+        ['super_admin', 'branch']
     );
 
-    // If branch_manager → always use their own branch_id
-    if ($user['role'] === 'branch_manager') {
+    if ($user['role'] === 'branch') {
+        // Branch user → always use their own branch_id from token / DB
         $branchId = (int)($user['branch_id'] ?? 0);
         if (!$branchId) {
-            Response::error('No branch assigned to this manager', 400);
+            Response::error('No branch assigned to this user.', 400);
         }
     } else {
-        // super_admin must specify ?branch_id=ID
-        $branchId = isset($_GET['branch_id'])
-            ? (int)$_GET['branch_id']
-            : 0;
-
+        // super_admin → can specify ?branch_id=ID
+        $branchId = isset($_GET['branch_id']) ? (int)$_GET['branch_id'] : 0;
         if (!$branchId) {
-            Response::error(
-                'branch_id query parameter is required for super_admin',
-                400
-            );
+            Response::error('branch_id query parameter is required for super_admin.', 400);
         }
     }
 
     $emps = (new Employee($this->pdo))->allActiveByBranch($branchId);
     Response::ok(['employees' => $emps]);
 }
+
 
 }

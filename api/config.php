@@ -2,10 +2,10 @@
 // API configuration for attendance backend
 return [
     'db' => [
-        'host' => 'localhost',
-        'name' => 'attendance_db',
-        'user' => 'root',
-        'pass' => '',
+        'host'    => '127.0.0.1',
+        'name'    => 'hr_system',
+        'user'    => 'hr_user',
+        'pass'    => 'Essentia06@',
         'charset' => 'utf8mb4',
     ],
     // JWT secret and TTL

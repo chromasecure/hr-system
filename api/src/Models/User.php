@@ -3,44 +3,76 @@ namespace App\Models;
 
 use PDO;
 
-class User {
+class User
+{
     public function __construct(private PDO $pdo) {}
 
+    /**
+     * Find user by primary key ID.
+     */
+    public function findById(int $id): ?array
+    {
+        $sql = 'SELECT id,
+                       username,
+                       password_hash,
+                       role,
+                       branch_id,
+                       IFNULL(is_active, 1) AS is_active
+                  FROM users
+                 WHERE id = :id
+                 LIMIT 1';
+        $st = $this->pdo->prepare($sql);
+        $st->execute([':id' => $id]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Find user by username (this is what the dashboard uses).
+     */
+    public function findByUsername(string $username): ?array
+    {
+        $sql = 'SELECT id,
+                       username,
+                       password_hash,
+                       role,
+                       branch_id,
+                       IFNULL(is_active, 1) AS is_active
+                  FROM users
+                 WHERE username = :username
+                 LIMIT 1';
+        $st = $this->pdo->prepare($sql);
+        $st->execute([':username' => $username]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Optional: if later you add an email column.
+     * For now, if no email column exists, call will just return null.
+     */
     public function findByEmail(string $email): ?array
-{
-    $stmt = $this->pdo->prepare(
-        'SELECT id, name, email, password_hash, role, branch_id, is_active
-         FROM users
-         WHERE email = :email
-         LIMIT 1'
-    );
-    $stmt->execute(['email' => $email]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    {
+        try {
+            $sql = 'SELECT id,
+                           username,
+                           password_hash,
+                           role,
+                           branch_id,
+                           IFNULL(is_active, 1) AS is_active
+                      FROM users
+                     WHERE email = :email
+                     LIMIT 1';
+            $st = $this->pdo->prepare($sql);
+            $st->execute([':email' => $email]);
+            $row = $st->fetch(PDO::FETCH_ASSOC);
 
-    return $row ?: null;
-}
-
-
-    public function findById(int $id): ?array {
-        $st = $this->pdo->prepare("SELECT * FROM users WHERE id=?");
-        $st->execute([$id]);
-        return $st->fetch() ?: null;
-    }
-
-    public function countAll(): int {
-        $st = $this->pdo->query("SELECT COUNT(*) AS c FROM users");
-        $row = $st->fetch();
-        return (int)($row['c'] ?? 0);
-    }
-
-    public function create(string $name, string $email, string $passwordHash, string $role, ?int $branchId = null): int {
-        $st = $this->pdo->prepare("INSERT INTO users (name,email,password_hash,role,branch_id,is_active) VALUES (?,?,?,?,?,1)");
-        $st->execute([$name, $email, $passwordHash, $role, $branchId]);
-        return (int)$this->pdo->lastInsertId();
-    }
-
-    public function updatePassword(int $id, string $passwordHash): void {
-        $st = $this->pdo->prepare("UPDATE users SET password_hash=?, updated_at=NOW() WHERE id=?");
-        $st->execute([$passwordHash, $id]);
+            return $row ?: null;
+        } catch (\Throwable $e) {
+            // email column may not exist; ignore and return null
+            return null;
+        }
     }
 }

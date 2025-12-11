@@ -74,6 +74,11 @@ try {
         (new WebDeviceController($pdo, $jwt))->create();
     });
 
+    $router->get('/api/web/employees', function() use ($pdo, $jwt) {
+    (new \App\Controllers\WebBranchController($pdo, $jwt))->myEmployees();
+});
+
+
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
 } catch (Throwable $e) {
     Response::error('Server error: ' . $e->getMessage(), 500);
