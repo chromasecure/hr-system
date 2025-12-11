@@ -48,17 +48,47 @@ class _CameraScreenState extends State<CameraScreen> {
     _startAutoRefresh();
   }
 
-  Future<void> _initCamera() async {
-    if (widget.cameras.isEmpty) return;
-    _controller?.dispose();
+   Future<void> _initCamera() async {
+    if (widget.cameras.isEmpty) {
+      setState(() {
+        _initializationError = 'No cameras found on this device.';
+      });
+      return;
+    }
+
+    // Clamp index
+    if (_cameraIndex < 0 || _cameraIndex >= widget.cameras.length) {
+      _cameraIndex = 0;
+    }
+
+    final description = widget.cameras[_cameraIndex];
+
+    // Dispose old controller if exists
+    if (_controller != null) {
+      await _controller!.dispose();
+    }
+
     _controller = CameraController(
-      widget.cameras[_cameraIndex],
+      description,
       ResolutionPreset.medium,
       enableAudio: false,
     );
-    await _controller!.initialize();
-    await _controller!.startImageStream(_processCameraImage);
-    setState(() {});
+
+    try {
+      await _controller!.initialize();
+      // Start image stream again if you use live detection
+      if (_recognitionEnabled && !_isStreaming) {
+        _startImageStream();
+      }
+      setState(() {
+        _initializationError = null;
+      });
+    } on CameraException catch (e) {
+      debugPrint('Camera init error: $e');
+      setState(() {
+        _initializationError = 'Camera error: ${e.code}';
+      });
+    }
   }
 
   void _startAutoRefresh() {
@@ -173,9 +203,16 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _switchCamera() async {
     if (widget.cameras.length < 2) return;
+
+    // Toggle index
     _cameraIndex = (_cameraIndex + 1) % widget.cameras.length;
-    _isCapturing = false;
-    _isDetecting = false;
+
+    // Stop streaming before switching
+    if (_controller != null && _isStreaming) {
+      await _controller!.stopImageStream();
+      _isStreaming = false;
+    }
+
     await _initCamera();
   }
 

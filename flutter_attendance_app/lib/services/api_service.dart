@@ -66,29 +66,41 @@ class ApiService {
     }
   }
 
-  Future<List<Employee>> fetchEmployees() async {
-    final url = _uri('/web/employees');
-    final resp = await http.get(url, headers: _headers());
-    if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      final list = (data['employees'] as List)
-          .map((e) => Employee.fromJson(e as Map<String, dynamic>))
-          .where((e) => e.employeeCode.isNotEmpty)
-          .toList();
-      final box = StorageService.employees();
-      await box.clear();
-      for (final emp in list) {
-        final cachedPath = StorageService.getFacePath(emp.id);
-        if (cachedPath != null) {
-          emp.localImagePath = cachedPath;
-        }
-        await box.put(emp.id, emp);
-      }
-      return list;
-    } else {
-      throw Exception('Failed to load employees: ${resp.body}');
+    Future<List<Employee>> fetchEmployees() async {
+    // Branch ID / code is saved in storage on login
+    final branchCode = StorageService.getBranchCode();
+
+    if (branchCode == null || branchCode.isEmpty) {
+      throw Exception('No branch selected for this manager');
     }
+
+    // DIRECT call to our JSON PHP script:
+    final uri = Uri.parse('$baseUrl/api/mobile/employees_by_branch.php')
+        .replace(queryParameters: {'branch_id': branchCode});
+
+    final resp = await http.get(uri);
+
+    if (resp.statusCode != 200) {
+      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+    }
+
+    dynamic json;
+    try {
+      json = jsonDecode(resp.body);
+    } on FormatException {
+      throw Exception('Invalid response: ${resp.body}');
+    }
+
+    if (json is! Map ||
+        json['success'] != true ||
+        json['data'] is! List<dynamic>) {
+      throw Exception('Invalid response: ${resp.body}');
+    }
+
+    final List<dynamic> rows = json['data'];
+    return rows.map((e) => Employee.fromJson(e as Map<String, dynamic>)).toList();
   }
+
 
   Future<void> markAttendance({
     required String employeeCode,
@@ -110,24 +122,45 @@ class ApiService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchTodayAttendance(String date) async {
-    final url = _uri('/web/attendance/today?date=$date');
-    final resp = await http.get(url, headers: _headers());
-    if (resp.statusCode == 200) {
-      dynamic data;
-      try {
-        data = jsonDecode(resp.body);
-      } catch (_) {
-        throw Exception('Invalid response: ${resp.body}');
-      }
-      final list = (data['employees'] as List)
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
-      return list;
-    } else {
-      throw Exception('Fetch attendance failed: ${resp.body}');
+    Future<List<Map<String, dynamic>>> fetchTodayAttendance(DateTime date) async {
+    final branchCode = StorageService.getBranchCode();
+    if (branchCode == null || branchCode.isEmpty) {
+      throw Exception('No branch selected for this manager');
     }
+
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+
+    final uri = Uri.parse('$baseUrl/api/mobile/today_attendance.php')
+        .replace(queryParameters: {
+      'branch_id': branchCode,
+      'date': formattedDate,
+    });
+
+    final resp = await http.get(uri);
+
+    if (resp.statusCode != 200) {
+      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+    }
+
+    dynamic json;
+    try {
+      json = jsonDecode(resp.body);
+    } on FormatException {
+      throw Exception('Invalid response: ${resp.body}');
+    }
+
+    if (json is! Map ||
+        json['success'] != true ||
+        json['data'] is! List<dynamic>) {
+      throw Exception('Invalid response: ${resp.body}');
+    }
+
+    final List<dynamic> rows = json['data'];
+
+    // TodayAttendanceScreen expects a List<Map<String,dynamic>>
+    return rows.cast<Map<String, dynamic>>();
   }
+
 
   Future<void> updateTodayAttendance({
     required String date,
@@ -156,7 +189,7 @@ class ApiService {
     }
   }
 
-  Future<void> createPendingEmployee({
+    Future<void> createPendingEmployee({
     required String name,
     required String employeeCode,
     String? contact,
@@ -167,7 +200,13 @@ class ApiService {
     required String imageBase64,
   }) async {
     final url = _uri('/web/employees/create-pending');
+
+    // read branch id / code from local storage (set at login)
+    final branchCode = StorageService.getBranchCode();
+
     final body = {
+      if (branchCode != null && branchCode.isNotEmpty)
+        'branch_id': branchCode,
       'name': name,
       'employee_code': employeeCode,
       'contact': contact,
@@ -177,12 +216,15 @@ class ApiService {
       'joining_date': joiningDate,
       'image': imageBase64,
     };
+
     final resp =
         await http.post(url, headers: _headers(), body: jsonEncode(body));
     if (resp.statusCode != 200) {
       throw Exception('Create pending failed: ${resp.body}');
     }
   }
+
+
 
   Future<void> attachFace({
     required String employeeCode,
