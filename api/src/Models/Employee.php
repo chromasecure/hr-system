@@ -7,7 +7,8 @@ class Employee {
     public function __construct(private PDO $pdo) {}
 
     public function allActiveByBranch(int $branchId): array {
-        $st = $this->pdo->prepare("SELECT id, employee_code, name, branch_id, face_template_hash, face_image_path FROM employees WHERE branch_id=? AND status='active' ORDER BY name ASC");
+        // Some databases keep legacy status casing; treat null/Active/active as active
+        $st = $this->pdo->prepare("SELECT id, employee_code, name, branch_id, face_template_hash, face_image_path, status FROM employees WHERE branch_id=? AND (status IS NULL OR LOWER(status)='active') ORDER BY name ASC");
         $st->execute([$branchId]);
         return $st->fetchAll();
     }
@@ -25,7 +26,11 @@ class Employee {
     }
 
     public function updateFacePath(int $id, string $path): void {
-        $st = $this->pdo->prepare("UPDATE employees SET face_image_path=?, updated_at=NOW() WHERE id=?");
-        $st->execute([$path, $id]);
+        $this->updateFaceData($id, $path, null);
+    }
+
+    public function updateFaceData(int $id, ?string $path, ?string $templateHash): void {
+        $st = $this->pdo->prepare("UPDATE employees SET face_image_path=COALESCE(?, face_image_path), face_template_hash=COALESCE(?, face_template_hash), updated_at=NOW() WHERE id=?");
+        $st->execute([$path, $templateHash, $id]);
     }
 }

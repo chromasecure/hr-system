@@ -63,6 +63,9 @@ try {
     $router->get('/api/web/employees', function() use ($pdo, $jwt) {
         (new \App\Controllers\WebBranchController($pdo, $jwt))->myEmployees();
     });
+    $router->post('/api/web/employees/create-pending', function() use ($pdo, $jwt) {
+        (new \App\Controllers\WebEmployeeController($pdo, $jwt))->createPending();
+    });
     $router->post('/api/web/employees/attach-face', function() use ($pdo, $jwt) {
         (new \App\Controllers\WebEmployeeController($pdo, $jwt))->attachFace();
     });

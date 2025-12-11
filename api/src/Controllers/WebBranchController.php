@@ -31,10 +31,11 @@ class WebBranchController {
         $emps = array_map(function($e) {
             return [
                 'id' => (int)$e['id'],
-                'code' => $e['employee_code'],
+                'employee_code' => $e['employee_code'],
                 'name' => $e['name'],
-                'face_registered' => !empty($e['face_image_path']),
-                'photo_url' => $this->absUrl($e['face_image_path']),
+                'face_template_hash' => $e['face_template_hash'] ?? '',
+                'face_image_path' => $this->absUrl($e['face_image_path']),
+                'approval_status' => $e['approval_status'] ?? 'approved',
             ];
         }, $raw);
         Response::ok(['employees' => $emps]);
@@ -74,10 +75,11 @@ class WebBranchController {
         $emps = array_map(function($e) {
             return [
                 'id' => (int)$e['id'],
-                'code' => $e['employee_code'],
+                'employee_code' => $e['employee_code'],
                 'name' => $e['name'],
-                'face_registered' => !empty($e['face_image_path']),
-                'photo_url' => $this->absUrl($e['face_image_path']),
+                'face_template_hash' => $e['face_template_hash'] ?? '',
+                'face_image_path' => $this->absUrl($e['face_image_path']),
+                'approval_status' => $e['approval_status'] ?? 'approved',
             ];
         }, $raw);
         Response::ok(['employees' => $emps]);

@@ -28,6 +28,8 @@ class _AddPendingEmployeeScreenState extends State<AddPendingEmployeeScreen> {
   XFile? _capture;
   bool _busy = false;
   String _status = 'Fill details and capture face.';
+  CameraController? _controller;
+  int _cameraIndex = 0;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -39,18 +41,37 @@ class _AddPendingEmployeeScreenState extends State<AddPendingEmployeeScreen> {
     if (picked != null) setState(() => _joinDate = picked);
   }
 
-  Future<void> _captureFace() async {
-    final cameras = widget.cameras;
-    if (cameras.isEmpty) return;
-    final cam = cameras.first;
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    if (widget.cameras.isEmpty) return;
+    _controller?.dispose();
+    final cam = widget.cameras[_cameraIndex];
     final ctrl = CameraController(cam, ResolutionPreset.medium, enableAudio: false);
     await ctrl.initialize();
-    final shot = await ctrl.takePicture();
-    await ctrl.dispose();
+    if (!mounted) return;
+    setState(() {
+      _controller = ctrl;
+    });
+  }
+
+  Future<void> _captureFace() async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    final shot = await _controller!.takePicture();
     setState(() {
       _capture = shot;
       _status = 'Face captured.';
     });
+  }
+
+  Future<void> _switchCamera() async {
+    if (widget.cameras.length < 2) return;
+    _cameraIndex = (_cameraIndex + 1) % widget.cameras.length;
+    await _initCamera();
   }
 
   Future<void> _submit() async {
@@ -98,6 +119,7 @@ class _AddPendingEmployeeScreenState extends State<AddPendingEmployeeScreen> {
 
   @override
   void dispose() {
+    _controller?.dispose();
     _nameCtrl.dispose();
     _codeCtrl.dispose();
     _contactCtrl.dispose();
@@ -110,7 +132,15 @@ class _AddPendingEmployeeScreenState extends State<AddPendingEmployeeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Employee')),
+      appBar: AppBar(
+        title: const Text('Add Employee'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cameraswitch),
+            onPressed: widget.cameras.length < 2 ? null : _switchCamera,
+          )
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -147,6 +177,20 @@ class _AddPendingEmployeeScreenState extends State<AddPendingEmployeeScreen> {
                 Text('Joining: ${_joinDate.toString().substring(0, 10)}'),
                 TextButton(onPressed: _pickDate, child: const Text('Pick')),
               ],
+            ),
+            const SizedBox(height: 12),
+            AspectRatio(
+              aspectRatio: 3 / 4,
+              child: Container(
+                decoration: BoxDecoration(
+                    color: Colors.black, borderRadius: BorderRadius.circular(12)),
+                child: _controller != null && _controller!.value.isInitialized
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CameraPreview(_controller!),
+                      )
+                    : const Center(child: CircularProgressIndicator()),
+              ),
             ),
             const SizedBox(height: 12),
             if (_capture != null)

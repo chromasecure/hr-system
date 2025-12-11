@@ -65,11 +65,13 @@ class WebAttendanceController
             $emp = $empRepo->findByCodeInBranch($code, $branchId);
             if (!$emp) continue;
 
+            $eventType = $status === 'out' ? 'out' : ($status === 'absent' ? 'absent' : 'in');
+
             $logRepo->insert([
                 'employee_id' => (int)$emp['id'],
                 'branch_id' => $branchId,
                 'device_id' => null,
-                'event_type' => $status == 'out' ? 'out' : 'in',
+                'event_type' => $eventType,
                 'marked_at' => $date . ' 09:00:00',
                 'meta' => ['remark' => $remark],
                 'source' => 'manager',

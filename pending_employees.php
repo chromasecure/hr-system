@@ -1,10 +1,16 @@
 <?php
 require_once 'config.php';
 
-$pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-]);
+// Reuse the root config values (uppercase) for PDO access
+$pdo = new PDO(
+    "mysql:host={$DB_HOST};dbname={$DB_NAME};charset=utf8mb4",
+    $DB_USER,
+    $DB_PASS,
+    [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]
+);
 
 function fetchPending($pdo) {
     $sql = "SELECT p.*, b.name AS branch_name FROM pending_employees p LEFT JOIN branches b ON b.id=p.branch_id WHERE p.status='pending' ORDER BY p.created_at DESC";
@@ -17,7 +23,7 @@ function approvePending($pdo, $id) {
     $st->execute([$id]);
     $row = $st->fetch();
     if (!$row) { $pdo->rollBack(); return 'Not found'; }
-    $st = $pdo->prepare("INSERT INTO employees (employee_code,name,branch_id,designation_id,contact,basic_salary,commission,joining_date,face_image_path,status,is_pending,created_at) VALUES (?,?,?,?,?,?,?,?,?,'active',0,NOW())");
+    $st = $pdo->prepare("INSERT INTO employees (employee_code,name,branch_id,designation_id,contact,basic_salary,commission,joining_date,face_image_path,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,'active',NOW())");
     $st->execute([
         $row['employee_code'],$row['name'],$row['branch_id'],$row['designation_id'],$row['contact'],$row['basic_salary'],$row['commission'],$row['joining_date'],$row['face_image_path']
     ]);
