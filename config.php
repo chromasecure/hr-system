@@ -3,7 +3,7 @@
 $DB_HOST = "localhost";
 $DB_USER = "root";
 $DB_PASS = "";
-$DB_NAME = "essentia_hr";
+$DB_NAME = "essentia_hr1";
 
 $mysqli = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
 if ($mysqli->connect_errno) {

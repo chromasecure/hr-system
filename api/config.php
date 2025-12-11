@@ -3,9 +3,9 @@
 return [
     'db' => [
         'host'    => '127.0.0.1',
-        'name'    => 'hr_system',
-        'user'    => 'hr_user',
-        'pass'    => 'Essentia06@',
+        'name'    => 'essentia_hr1',
+        'user'    => 'root',
+        'pass'    => '',
         'charset' => 'utf8mb4',
     ],
     // JWT secret and TTL
