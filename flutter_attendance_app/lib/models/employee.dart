@@ -32,9 +32,10 @@ class Employee extends HiveObject {
   });
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        employeeCode: json['employee_code'] as String,
+        id: (json['id'] ?? 0) as int,
+        name: (json['name'] ?? '') as String,
+        employeeCode:
+            (json['employee_code'] ?? json['code'] ?? '').toString().trim(),
         faceTemplate: (json['face_template_hash'] ?? '') as String,
         approvalStatus: (json['approval_status'] ?? 'approved') as String,
         localImagePath: json['face_image_path'] as String?,

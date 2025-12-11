@@ -73,6 +73,7 @@ class ApiService {
       final data = jsonDecode(resp.body);
       final list = (data['employees'] as List)
           .map((e) => Employee.fromJson(e as Map<String, dynamic>))
+          .where((e) => e.employeeCode.isNotEmpty)
           .toList();
       final box = StorageService.employees();
       await box.clear();
@@ -113,7 +114,12 @@ class ApiService {
     final url = _uri('/web/attendance/today?date=$date');
     final resp = await http.get(url, headers: _headers());
     if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
+      dynamic data;
+      try {
+        data = jsonDecode(resp.body);
+      } catch (_) {
+        throw Exception('Invalid response: ${resp.body}');
+      }
       final list = (data['employees'] as List)
           .map((e) => e as Map<String, dynamic>)
           .toList();
@@ -181,9 +187,14 @@ class ApiService {
   Future<void> attachFace({
     required String employeeCode,
     required String faceImageBase64,
+    String? faceTemplate,
   }) async {
     final url = _uri('/web/employees/attach-face');
-    final body = {'employee_code': employeeCode, 'image': faceImageBase64};
+    final body = {
+      'employee_code': employeeCode,
+      'image': faceImageBase64,
+      if (faceTemplate != null) 'face_template': faceTemplate,
+    };
     final resp =
         await http.post(url, headers: _headers(), body: jsonEncode(body));
     if (resp.statusCode != 200) {

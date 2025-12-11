@@ -7,7 +7,7 @@ class PendingEmployee {
     public function __construct(private PDO $pdo) {}
 
     public function create(array $data): int {
-        $st = $this->pdo->prepare("INSERT INTO pending_employees (employee_code,name,branch_id,designation_id,contact,basic_salary,commission,joining_date,face_image_path,created_by_user_id,status,created_at) VALUES (?,?,?,?,?,?,?,?,NULL,?,'pending',NOW())");
+        $st = $this->pdo->prepare("INSERT INTO pending_employees (employee_code,name,branch_id,designation_id,contact,basic_salary,commission,joining_date,face_image_path,created_by_user_id,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,'pending',NOW())");
         $st->execute([
             $data['employee_code'],
             $data['name'],
@@ -17,6 +17,7 @@ class PendingEmployee {
             $data['basic_salary'],
             $data['commission'],
             $data['joining_date'],
+            $data['face_image_path'],
             $data['created_by'],
         ]);
         return (int)$this->pdo->lastInsertId();

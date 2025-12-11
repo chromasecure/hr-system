@@ -25,7 +25,11 @@ class Employee {
     }
 
     public function updateFacePath(int $id, string $path): void {
-        $st = $this->pdo->prepare("UPDATE employees SET face_image_path=?, updated_at=NOW() WHERE id=?");
-        $st->execute([$path, $id]);
+        $this->updateFaceData($id, $path, null);
+    }
+
+    public function updateFaceData(int $id, ?string $path, ?string $templateHash): void {
+        $st = $this->pdo->prepare("UPDATE employees SET face_image_path=COALESCE(?, face_image_path), face_template_hash=COALESCE(?, face_template_hash), updated_at=NOW() WHERE id=?");
+        $st->execute([$path, $templateHash, $id]);
     }
 }
