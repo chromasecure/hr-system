@@ -141,9 +141,12 @@ class _RegisterEmployeeScreenState extends State<RegisterEmployeeScreen> {
     });
     try {
       final bytes = await _capture!.readAsBytes();
+      final template =
+          _embedding == null ? null : _faceService.encodeEmbedding(_embedding!);
       await widget.api.attachFace(
         employeeCode: _codeCtrl.text.trim(),
         faceImageBase64: base64Encode(bytes),
+        faceTemplate: template,
       );
       if (!mounted) return;
       setState(() => _status = 'Face saved.');
