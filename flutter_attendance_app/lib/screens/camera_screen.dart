@@ -141,7 +141,6 @@ class _CameraScreenState extends State<CameraScreen> {
           threshold: 0.88);
 
       if (match != null) {
-        // Cache face locally for fast future matching
         match.localImagePath ??= await FaceStorageService.saveFaceBytes(
           bytes,
           employeeId: match.id,
@@ -160,13 +159,6 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _onMatch(Employee emp, {String? base64Image}) async {
-    if (emp.approvalStatus != 'approved') {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Employee pending approval. Cannot mark attendance.')));
-      }
-      return;
-    }
     setState(() => _showSuccess = true);
     Timer(const Duration(seconds: 1), () {
       if (mounted) setState(() => _showSuccess = false);

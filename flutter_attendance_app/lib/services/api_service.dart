@@ -109,6 +109,33 @@ class ApiService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchTodayAttendance(String date) async {
+    final url = _uri('/web/attendance/today?date=$date');
+    final resp = await http.get(url, headers: _headers());
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      final list = (data['employees'] as List)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+      return list;
+    } else {
+      throw Exception('Fetch attendance failed: ${resp.body}');
+    }
+  }
+
+  Future<void> updateTodayAttendance({
+    required String date,
+    required List<Map<String, String>> records,
+  }) async {
+    final url = _uri('/web/attendance/update');
+    final body = {'date': date, 'records': records};
+    final resp =
+        await http.post(url, headers: _headers(), body: jsonEncode(body));
+    if (resp.statusCode != 200) {
+      throw Exception('Update attendance failed: ${resp.body}');
+    }
+  }
+
   Future<void> syncOffline() async {
     final logsBox = StorageService.offlineLogs();
     if (logsBox.isEmpty) return;

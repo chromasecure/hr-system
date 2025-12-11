@@ -15,6 +15,7 @@ use App\Controllers\WebAuthController;
 use App\Controllers\WebBranchController;
 use App\Controllers\WebDeviceController;
 use App\Controllers\WebEmployeeController;
+use App\Controllers\WebAttendanceController;
 use App\Helpers\JwtHelper;
 
 $config = require __DIR__ . '/../config.php';
@@ -67,6 +68,12 @@ try {
     });
     $router->post('/api/web/employees/assign-face', function() use ($pdo, $jwt) {
         (new \App\Controllers\WebEmployeeController($pdo, $jwt))->attachFace();
+    });
+    $router->get('/api/web/attendance/today', function() use ($pdo, $jwt) {
+        (new WebAttendanceController($pdo, $jwt))->today();
+    });
+    $router->post('/api/web/attendance/update', function() use ($pdo, $jwt) {
+        (new WebAttendanceController($pdo, $jwt))->update();
     });
 
     // Normalize URI so routes don't include /api/public prefix

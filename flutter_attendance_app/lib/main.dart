@@ -5,6 +5,7 @@ import 'screens/camera_screen.dart';
 import 'screens/employees_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/today_attendance_screen.dart';
 import 'services/storage_service.dart';
 import 'services/api_service.dart';
 import 'services/sync_service.dart';
@@ -76,6 +77,7 @@ class _MyAppState extends State<MyApp> {
           syncService: widget.syncService,
           api: widget.api,
           cameras: widget.cameras),
+      TodayAttendanceScreen(api: widget.api),
       SettingsScreen(
           api: widget.api,
           syncService: widget.syncService,
@@ -95,6 +97,8 @@ class _MyAppState extends State<MyApp> {
                       icon: Icon(Icons.camera), label: 'Camera'),
                   BottomNavigationBarItem(
                       icon: Icon(Icons.people), label: 'Employees'),
+                  BottomNavigationBarItem(
+                      icon: Icon(Icons.today), label: 'Today'),
                   BottomNavigationBarItem(
                       icon: Icon(Icons.settings), label: 'Settings'),
                 ],

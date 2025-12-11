@@ -1,41 +1,32 @@
 <?php
 require_once "config.php";
 
-$nav_branches = [];
-if (isset($_SESSION['user_id'])) {
-    $res = $mysqli->query("SELECT id, name FROM branches ORDER BY name ASC");
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $nav_branches[] = $row;
-        }
-    }
-}
 $role = $_SESSION['role'] ?? '';
 $theme = load_theme_settings();
 
-// define links
 $main_links = [
     ['href' => 'dashboard.php', 'label' => 'Dashboard', 'icon' => '🏠'],
 ];
 if ($role === 'branch') {
-    $main_links[] = ['href' => 'attendance.php', 'label' => 'Attendance', 'icon' => '🗓'];
-    $main_links[] = ['href' => 'payroll.php', 'label' => 'Payroll', 'icon' => '💳'];
+    $main_links[] = ['href' => 'attendance.php', 'label' => 'Attendance', 'icon' => '🗓️'];
+    $main_links[] = ['href' => 'payroll.php', 'label' => 'Payroll', 'icon' => '💰'];
 } else {
-    $main_links[] = ['href' => 'attendance.php', 'label' => 'Attendance', 'icon' => '🗓'];
-    $main_links[] = ['href' => 'payroll.php', 'label' => 'Payroll', 'icon' => '💳'];
+    $main_links[] = ['href' => 'attendance.php', 'label' => 'Attendance', 'icon' => '🗓️'];
+    $main_links[] = ['href' => 'payroll.php', 'label' => 'Payroll', 'icon' => '💰'];
     $main_links[] = ['href' => 'targets.php', 'label' => 'Targets', 'icon' => '🎯'];
     $main_links[] = ['href' => 'employees.php', 'label' => 'Employees', 'icon' => '👥'];
-    $main_links[] = ['href' => 'branches.php', 'label' => 'Branches', 'icon' => '📍'];
-    $main_links[] = ['href' => 'csv_tools.php', 'label' => 'CSV Tools', 'icon' => '⬇️'];
+    $main_links[] = ['href' => 'pending_employees.php', 'label' => 'Pending Employees', 'icon' => '⏳'];
+    $main_links[] = ['href' => 'branches.php', 'label' => 'Branches', 'icon' => '🏢'];
+    $main_links[] = ['href' => 'csv_tools.php', 'label' => 'CSV Tools', 'icon' => '📄'];
 }
 
 $settings_links = [];
 if ($role === 'admin') {
     $settings_links[] = ['href' => 'users.php', 'label' => 'Users', 'icon' => '👤'];
-    $settings_links[] = ['href' => 'designations.php', 'label' => 'Designations', 'icon' => '🏷'];
-    $settings_links[] = ['href' => 'backup.php', 'label' => 'Backups', 'icon' => '💾'];
+    $settings_links[] = ['href' => 'designations.php', 'label' => 'Designations', 'icon' => '🏷️'];
+    $settings_links[] = ['href' => 'backup.php', 'label' => 'Backups', 'icon' => '🗂️'];
     $settings_links[] = ['href' => 'activity.php', 'label' => 'Activity', 'icon' => '📜'];
-    $settings_links[] = ['href' => 'settings.php', 'label' => 'Settings', 'icon' => '⚙'];
+    $settings_links[] = ['href' => 'settings.php', 'label' => 'Settings', 'icon' => '⚙️'];
 }
 ?>
 <style>
@@ -90,7 +81,6 @@ if ($role === 'admin') {
   </div>
 </nav>
 
-<!-- Floating logout bottom-left -->
 <div class="logout-floating">
   <a href="logout.php" class="btn btn-outline-secondary btn-sm">Logout</a>
 </div>
