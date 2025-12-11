@@ -35,6 +35,7 @@ class User
     {
         $sql = 'SELECT id,
                        username,
+                       email,
                        password_hash,
                        role,
                        branch_id,
@@ -58,6 +59,7 @@ class User
         try {
             $sql = 'SELECT id,
                            username,
+                           email,
                            password_hash,
                            role,
                            branch_id,
@@ -74,5 +76,17 @@ class User
             // email column may not exist; ignore and return null
             return null;
         }
+    }
+
+    /**
+     * Find by username or email (whichever matches first).
+     */
+    public function findByIdentifier(string $identifier): ?array
+    {
+        $user = $this->findByUsername($identifier);
+        if ($user) {
+            return $user;
+        }
+        return $this->findByEmail($identifier);
     }
 }

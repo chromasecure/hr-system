@@ -25,53 +25,30 @@ class _LoginScreenState extends State<LoginScreen> {
   String _status = 'Sign in with branch manager account.';
   String _baseUrl = StorageService.getBaseUrl() ?? 'http://localhost';
   String _apiPrefix = StorageService.getApiPrefix() ?? '/api';
-  String get _resolvedLoginUrl => '$_baseUrl$_apiPrefix/api/web/login';
+  String get _resolvedLoginUrl => '$_baseUrl/api/web/login';
 
-
- Future<void> _login() async {
-  if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
-    setState(() => _status = 'Email and password are required.');
-    return;
-  }
-  setState(() {
-    _busy = true;
-    _status = 'Signing in...';
-  });
-
-  try {
-    widget.api.updateBaseUrl(_baseUrl);
-    widget.api.updateApiPrefix(_apiPrefix);
-
-    // 1) Login
-    await widget.api.loginManager(
-      email: _emailCtrl.text.trim(),
-      password: _passCtrl.text.trim(),
-    );
-
-    // 2) Move to main app immediately
-    widget.onLoggedIn();
-
-    // 3) Try to sync employees, but don't block login if this fails
+  Future<void> _login() async {
+    if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
+      setState(() => _status = 'Email and password are required.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _status = 'Signing in...';
+    });
     try {
+      widget.api.updateBaseUrl(_baseUrl);
+      widget.api.updateApiPrefix(_apiPrefix);
+      await widget.api.loginManager(
+          email: _emailCtrl.text.trim(), password: _passCtrl.text.trim());
       await widget.syncService.refreshEmployees();
-      if (mounted) {
-        setState(() => _status = 'Logged in and employees synced.');
-      }
+      widget.onLoggedIn();
     } catch (e) {
-      if (mounted) {
-        setState(() => _status =
-            'Logged in, but employee sync failed: $e');
-      }
-    }
-  } catch (e) {
-    if (mounted) {
       setState(() => _status = 'Login failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
-  } finally {
-    if (mounted) setState(() => _busy = false);
   }
-}
-
 
   Future<void> _changeBaseUrl() async {
     final baseCtrl = TextEditingController(text: _baseUrl);
@@ -98,22 +75,18 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(
               onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context, {
-                    'base': baseCtrl.text.trim(),
-                    'prefix': prefixCtrl.text.trim()
-                  }),
+              onPressed: () =>
+                  Navigator.pop(context, {'base': baseCtrl.text.trim(), 'prefix': prefixCtrl.text.trim()}),
               child: const Text('Save')),
         ],
       ),
     );
     if (result != null) {
-      final newUrl = result['base'] ?? _baseUrl;
-      final newPrefix = result['prefix'] ?? _apiPrefix;
-      await StorageService.setBaseUrl(newUrl);
-      await StorageService.setApiPrefix(newPrefix);
+      await StorageService.setBaseUrl(result['base'] ?? _baseUrl);
+      await StorageService.setApiPrefix(result['prefix'] ?? _apiPrefix);
       setState(() {
-        _baseUrl = newUrl;
-        _apiPrefix = newPrefix;
+        _baseUrl = result['base'] ?? _baseUrl;
+        _apiPrefix = result['prefix'] ?? _apiPrefix;
         _status = 'Using $_resolvedLoginUrl';
       });
     }
@@ -141,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
               TextField(
                 controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'Email / Username'),
               ),
               TextField(
                 controller: _passCtrl,

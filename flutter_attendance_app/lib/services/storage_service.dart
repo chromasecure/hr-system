@@ -25,10 +25,6 @@ class StorageService {
   static Box settings() => Hive.box(settingsBox);
   static Box<OfflineLog> offlineLogs() => Hive.box<OfflineLog>(offlineLogsBox);
 
-  static String? getDeviceToken() => settings().get('device_token');
-  static Future<void> setDeviceToken(String token) =>
-      settings().put('device_token', token);
-
   static String? getAuthToken() => settings().get('auth_token');
   static Future<void> setAuthToken(String token) =>
       settings().put('auth_token', token);
@@ -36,6 +32,7 @@ class StorageService {
   static Future<void> clearAuth() async {
     await settings().delete('auth_token');
     await settings().delete('manager_email');
+    await settings().delete('branch_code');
   }
 
   static Future<void> setManagerEmail(String email) =>
@@ -53,10 +50,6 @@ class StorageService {
   static Future<void> setBranchCode(String code) =>
       settings().put('branch_code', code);
   static String? getBranchCode() => settings().get('branch_code');
-
-  static Future<void> setDeviceName(String name) =>
-      settings().put('device_name', name);
-  static String? getDeviceName() => settings().get('device_name');
 
   static String? getFacePath(int employeeId) =>
       settings().get('face_path_$employeeId');

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/employee.dart';
 import '../services/api_service.dart';
 import '../services/sync_service.dart';
+import 'add_pending_employee_screen.dart';
 import 'register_employee_screen.dart';
 
 class EmployeesScreen extends StatefulWidget {
@@ -44,6 +45,15 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     setState(() {}); // refresh list from hive
   }
 
+  Future<void> _openAddPending() async {
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AddPendingEmployeeScreen(
+              cameras: widget.cameras,
+              api: widget.api,
+            )));
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final emps = widget.syncService.cachedEmployees();
@@ -62,9 +72,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openRegister,
-        icon: const Icon(Icons.person_add),
-        label: const Text('Attach Face'),
+        onPressed: _openAddPending,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Employee'),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,

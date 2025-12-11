@@ -28,9 +28,18 @@ class DeviceController {
             Response::error('Branch not found or inactive', 404);
         }
 
+        $deviceModel = new Device($this->pdo);
+        $existing = $deviceModel->findByBranchAndName((int)$branch['id'], $deviceName);
         $token = bin2hex(random_bytes(32));
         $secret = bin2hex(random_bytes(16));
-        $deviceId = (new Device($this->pdo))->create((int)$branch['id'], $deviceName, $token, $secret);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+
+        if ($existing) {
+            $deviceModel->updateToken((int)$existing['id'], $token, $secret, $ip);
+            $deviceId = (int)$existing['id'];
+        } else {
+            $deviceId = $deviceModel->create((int)$branch['id'], $deviceName, $token, $secret, $ip);
+        }
 
         Response::ok([
             'device_token' => $token,

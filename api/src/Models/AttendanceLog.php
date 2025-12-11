@@ -19,10 +19,11 @@ class AttendanceLog {
     }
 
     public function insert(array $data): int {
-        $st = $this->pdo->prepare("INSERT INTO attendance_logs (employee_id, branch_id, device_id, event_type, marked_at, created_at, source, meta) VALUES (?,?,?,?,?,NOW(),?,?)");
+        $st = $this->pdo->prepare("INSERT INTO attendance_logs (employee_id, branch_id, device_id, event_type, status, marked_at, created_at, source, meta) VALUES (?,?,?,?,?,?,NOW(),?,?)");
         $st->execute([
             $data['employee_id'], $data['branch_id'], $data['device_id'],
-            $data['event_type'], $data['marked_at'], $data['source'] ?? 'device',
+            $data['event_type'], $data['event_type'], $data['marked_at'],
+            $data['source'] ?? 'device',
             $data['meta'] ? json_encode($data['meta']) : null
         ]);
         return (int)$this->pdo->lastInsertId();
@@ -32,5 +33,11 @@ class AttendanceLog {
         $st = $this->pdo->prepare("SELECT al.*, e.employee_code, e.name FROM attendance_logs al JOIN employees e ON e.id=al.employee_id WHERE al.branch_id=? AND DATE(al.marked_at)=? ORDER BY al.marked_at ASC");
         $st->execute([$branchId, $date]);
         return $st->fetchAll();
+    }
+
+    public function hasStatusForDay(int $employeeId, string $status, string $date): bool {
+        $st = $this->pdo->prepare("SELECT COUNT(1) FROM attendance_logs WHERE employee_id=? AND event_type=? AND DATE(marked_at)=?");
+        $st->execute([$employeeId, $status, $date]);
+        return (int)$st->fetchColumn() > 0;
     }
 }

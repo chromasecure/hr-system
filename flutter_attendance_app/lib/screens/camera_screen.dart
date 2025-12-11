@@ -148,17 +148,6 @@ class _CameraScreenState extends State<CameraScreen> {
         );
         await widget.syncService.upsertEmployee(match);
         await _onMatch(match, base64Image: base64Image);
-      } else {
-        final remoteMatch = await widget.api.identifyFace(base64Image);
-        if (remoteMatch != null) {
-          remoteMatch.localImagePath ??=
-              await FaceStorageService.saveFaceBytes(
-            bytes,
-            employeeId: remoteMatch.id,
-          );
-          await widget.syncService.upsertEmployee(remoteMatch);
-          await _onMatch(remoteMatch, base64Image: base64Image);
-        }
       }
     } finally {
       if (_controller != null &&
@@ -183,10 +172,9 @@ class _CameraScreenState extends State<CameraScreen> {
       if (mounted) setState(() => _showSuccess = false);
     });
     await widget.api.markAttendance(
-      employeeId: emp.id,
       employeeCode: emp.employeeCode,
-      capturedAt: DateTime.now().toString().substring(0, 19),
-      confidence: 0.9,
+      timestamp: DateTime.now().toIso8601String(),
+      status: 'in',
       faceImageBase64: base64Image,
     );
   }

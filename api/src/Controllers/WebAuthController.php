@@ -12,14 +12,13 @@ class WebAuthController
 
     public function login(): void
     {
-        // Read JSON body
         $raw  = file_get_contents('php://input');
         $data = json_decode($raw, true);
         if (!is_array($data)) {
             $data = [];
         }
 
-        // Flutter sends "email" field – we treat it as username.
+        // Allow username OR email (Flutter sends in "email" field)
         $identifier = trim($data['email'] ?? '');
         $password   = trim($data['password'] ?? '');
 
@@ -28,20 +27,13 @@ class WebAuthController
         }
 
         $userModel = new User($this->pdo);
-
-        // Try username first (this is what your dashboard uses)
-        $user = $userModel->findByUsername($identifier);
-
-        // Optionally fall back to email if you later add an email column
-        if (!$user) {
-            $user = $userModel->findByEmail($identifier);
-        }
+        $user = $userModel->findByIdentifier($identifier);
 
         if (!$user) {
             Response::error('Invalid credentials.', 401);
         }
 
-        if (isset($user['is_active']) && !$user['is_active']) {
+        if ((int)($user['is_active'] ?? 1) !== 1) {
             Response::error('User inactive.', 401);
         }
 
@@ -49,27 +41,30 @@ class WebAuthController
             Response::error('Invalid credentials.', 401);
         }
 
-        // Only allow branch users to log into the device app
+        // Only allow branch role
         if ($user['role'] !== 'branch') {
-            Response::error('Only branch users can log in here.', 403);
+            Response::error('Only branch managers can log in here.', 403);
         }
 
-        $branchId = $user['branch_id'] ?? null;
-        if (!$branchId) {
+        $branchId = (int)($user['branch_id'] ?? 0);
+        if ($branchId === 0) {
             Response::error('No branch assigned to this user.', 400);
         }
 
-        // Issue JWT with user id, role, branch id
         $token = $this->jwt->issueToken([
             'uid'       => (int)$user['id'],
             'role'      => $user['role'],
-            'branch_id' => (int)$branchId,
+            'branch_id' => $branchId,
         ]);
 
         Response::ok([
-            'token'     => $token,
-            'role'      => $user['role'],
-            'branch_id' => (int)$branchId,
+            'token'   => $token,
+            'manager' => [
+                'id'        => (int)$user['id'],
+                'username'  => $user['username'],
+                'branch_id' => $branchId,
+                'role'      => $user['role'],
+            ],
         ]);
     }
 }

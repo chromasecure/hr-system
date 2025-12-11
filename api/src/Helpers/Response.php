@@ -10,7 +10,7 @@ class Response {
     }
 
     public static function ok(array $data = [], int $code = 200): void {
-        self::json(array_merge(['status' => 'ok'], $data), $code);
+        self::json(array_merge(['status' => 'success'], $data), $code);
     }
 
     public static function error(string $message, int $code = 400, array $extra = []): void {

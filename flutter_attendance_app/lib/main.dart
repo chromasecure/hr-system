@@ -52,8 +52,11 @@ class _MyAppState extends State<MyApp> {
   bool _loggedIn = StorageService.getAuthToken() != null;
 
   Future<void> _handleLoggedIn() async {
-  setState(() => _loggedIn = true);
-}
+    try {
+      await widget.syncService.refreshEmployees();
+    } catch (_) {}
+    setState(() => _loggedIn = true);
+  }
 
 
   Future<void> _logout() async {

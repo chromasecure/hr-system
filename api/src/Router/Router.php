@@ -5,7 +5,7 @@ namespace App\Router;
 class Router
 {
     /**
-     * @var array<string, array<string, callable|array>>
+     * @var array<string, array<int, array{pattern:string,keys:array,handler:callable|array}>>
      */
     private array $routes = [];
 
@@ -17,7 +17,19 @@ class Router
         $method = strtoupper($method);
         $path   = rtrim($path, '/') ?: '/';
 
-        $this->routes[$method][$path] = $handler;
+        // Convert route with {param} to regex
+        $keys = [];
+        $regex = preg_replace_callback('/\{([^}]+)\}/', function ($m) use (&$keys) {
+            $keys[] = $m[1];
+            return '([^/]+)';
+        }, $path);
+        $pattern = '#^' . $regex . '$#';
+
+        $this->routes[$method][] = [
+            'pattern' => $pattern,
+            'keys'    => $keys,
+            'handler' => $handler,
+        ];
     }
 
     /**
@@ -45,33 +57,47 @@ class Router
         $path   = parse_url($uri, PHP_URL_PATH) ?? '/';
         $path   = rtrim($path, '/') ?: '/';
 
-        if (!isset($this->routes[$method][$path])) {
-            http_response_code(404);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'status'  => 'error',
-                'message' => 'Not found',
-            ]);
-            return;
+        if (!isset($this->routes[$method])) {
+            return $this->notFound();
         }
 
-        $handler = $this->routes[$method][$path];
+        foreach ($this->routes[$method] as $route) {
+            if (preg_match($route['pattern'], $path, $matches)) {
+                array_shift($matches);
+                $params = [];
+                foreach ($route['keys'] as $idx => $key) {
+                    $params[$key] = $matches[$idx] ?? null;
+                }
 
-        // Allow both closures and [ControllerClass::class, 'method'] style
-        if (is_array($handler)) {
-            [$class, $action] = $handler;
-            $instance = new $class();
-            $result = $instance->$action();
-        } else {
-            $result = $handler();
-        }
+                $handler = $route['handler'];
+                if (is_array($handler)) {
+                    [$class, $action] = $handler;
+                    $instance = new $class();
+                    $result = $instance->$action($params);
+                } else {
+                    $result = $handler($params);
+                }
 
-        // If handler returns something, output JSON by default
-        if ($result !== null) {
-            if (!headers_sent()) {
-                header('Content-Type: application/json');
+                if ($result !== null) {
+                    if (!headers_sent()) {
+                        header('Content-Type: application/json');
+                    }
+                    echo is_string($result) ? $result : json_encode($result);
+                }
+                return;
             }
-            echo is_string($result) ? $result : json_encode($result);
         }
+
+        $this->notFound();
+    }
+
+    private function notFound(): void
+    {
+        http_response_code(404);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Not found',
+        ]);
     }
 }

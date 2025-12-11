@@ -10,12 +10,11 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 use App\Config\Database;
 use App\Router\Router;
 use App\Helpers\Response;
-use App\Controllers\DeviceController;
 use App\Controllers\AttendanceController;
 use App\Controllers\WebAuthController;
 use App\Controllers\WebBranchController;
 use App\Controllers\WebDeviceController;
-use App\Middleware\DeviceAuth;
+use App\Controllers\WebEmployeeController;
 use App\Helpers\JwtHelper;
 
 $config = require __DIR__ . '/../config.php';
@@ -27,27 +26,12 @@ try {
 
     $router = new Router();
 
-    // Device endpoints
-    $router->add('POST', '/api/device/register-or-login', function() use ($pdo, $config) {
-        (new DeviceController($pdo, $config))->registerOrLogin();
+    // Attendance endpoints (branch JWT)
+    $router->add('POST', '/api/attendance/mark', function() use ($pdo, $config, $jwt) {
+        (new AttendanceController($pdo, $config, $jwt))->markForManager();
     });
-    $router->add('POST', '/api/device/heartbeat', function() use ($pdo) {
-        $dev = DeviceAuth::authenticate($pdo);
-        (new DeviceController($pdo, []))->heartbeat($dev);
-    });
-    $router->add('GET', '/api/device/employees', function() use ($pdo) {
-        $dev = DeviceAuth::authenticate($pdo);
-        (new DeviceController($pdo, []))->employees($dev);
-    });
-
-    // Attendance endpoints
-    $router->add('POST', '/api/attendance/mark', function() use ($pdo, $config) {
-        $dev = DeviceAuth::authenticate($pdo);
-        (new AttendanceController($pdo, $config))->mark($dev);
-    });
-    $router->add('POST', '/api/attendance/sync-offline', function() use ($pdo, $config) {
-        $dev = DeviceAuth::authenticate($pdo);
-        (new AttendanceController($pdo, $config))->syncOffline($dev);
+    $router->add('POST', '/api/attendance/sync-offline', function() use ($pdo, $config, $jwt) {
+        (new AttendanceController($pdo, $config, $jwt))->syncOfflineManager();
     });
 
     // Web auth
@@ -74,22 +58,27 @@ try {
         (new WebDeviceController($pdo, $jwt))->create();
     });
 
+    // Employees for web
     $router->get('/api/web/employees', function() use ($pdo, $jwt) {
-    (new \App\Controllers\WebBranchController($pdo, $jwt))->myEmployees();
-});
-
+        (new \App\Controllers\WebBranchController($pdo, $jwt))->myEmployees();
+    });
+    $router->post('/api/web/employees/attach-face', function() use ($pdo, $jwt) {
+        (new \App\Controllers\WebEmployeeController($pdo, $jwt))->attachFace();
+    });
+    $router->post('/api/web/employees/assign-face', function() use ($pdo, $jwt) {
+        (new \App\Controllers\WebEmployeeController($pdo, $jwt))->attachFace();
+    });
 
     // Normalize URI so routes don't include /api/public prefix
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+    $basePath = dirname($_SERVER['SCRIPT_NAME'] ?? '') ?: '';
+    if ($basePath && $basePath !== '/' && strpos($uri, $basePath) === 0) {
+        $uri = substr($uri, strlen($basePath));
+    }
+    if ($uri === '') $uri = '/';
 
-// Remove the base path (/api/public)
-$basePath = '/api/public';
-if (strpos($uri, $basePath) === 0) {
-    $uri = substr($uri, strlen($basePath));
-}
-
-// Dispatch using the cleaned path, e.g. /api/web/login
-$router->dispatch($_SERVER['REQUEST_METHOD'], $uri ?: '/');
+    // Dispatch using the cleaned path, e.g. /api/web/login
+    $router->dispatch($_SERVER['REQUEST_METHOD'], $uri);
 
 } catch (Throwable $e) {
     Response::error('Server error: ' . $e->getMessage(), 500);

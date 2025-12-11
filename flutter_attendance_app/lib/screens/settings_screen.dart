@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
@@ -15,8 +16,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _branchCtrl = TextEditingController();
-  final _deviceCtrl = TextEditingController();
   final _baseUrlCtrl = TextEditingController();
   final _prefixCtrl = TextEditingController();
   bool _busy = false;
@@ -26,26 +25,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _branchCtrl.text = StorageService.getBranchCode() ?? '';
-    _deviceCtrl.text = StorageService.getDeviceName() ?? '';
     _baseUrlCtrl.text = StorageService.getBaseUrl() ?? 'http://localhost';
     _prefixCtrl.text = StorageService.getApiPrefix() ?? '/api';
     _managerEmail = StorageService.getManagerEmail();
   }
 
-  Future<void> _register() async {
+  Future<void> _saveBaseUrl() async {
     setState(() {
       _busy = true;
-      _status = 'Registering...';
+      _status = 'Saving...';
     });
+    final url = _baseUrlCtrl.text.trim();
+    final prefix = _prefixCtrl.text.trim();
+    await StorageService.setBaseUrl(url);
+    await StorageService.setApiPrefix(prefix);
+    widget.api.updateBaseUrl(url);
+    widget.api.updateApiPrefix(prefix);
     try {
-      await widget.api.registerDevice(
-          branchCode: _branchCtrl.text.trim(),
-          deviceName: _deviceCtrl.text.trim(),
-          registrationSecret: 'ADMIN_DEVICE_SECRET');
-      _status = 'Registered and token saved';
+      await widget.syncService.refreshEmployees();
+      _status = 'Saved. Employees refreshed.';
     } catch (e) {
-      _status = 'Error: $e';
+      _status = 'Saved. Refresh failed: $e';
     } finally {
       setState(() => _busy = false);
     }
@@ -66,31 +66,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _saveBaseUrl() async {
-    setState(() {
-      _busy = true;
-      _status = 'Saving base URL...';
-    });
-    final url = _baseUrlCtrl.text.trim();
-    final prefix = _prefixCtrl.text.trim();
-    await StorageService.setBaseUrl(url);
-    await StorageService.setApiPrefix(prefix);
-    widget.api.updateBaseUrl(url);
-    widget.api.updateApiPrefix(prefix);
-    try {
-      await widget.syncService.refreshEmployees();
-      _status = 'Saved. Employees refreshed.';
-    } catch (e) {
-      _status = 'Saved. Refresh failed: $e';
-    } finally {
-      setState(() => _busy = false);
-    }
-  }
-
   @override
   void dispose() {
-    _branchCtrl.dispose();
-    _deviceCtrl.dispose();
     _baseUrlCtrl.dispose();
     _prefixCtrl.dispose();
     super.dispose();
@@ -113,14 +90,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: _prefixCtrl,
               decoration: const InputDecoration(labelText: 'API Prefix (e.g. /api)'),
             ),
-            TextField(
-              controller: _branchCtrl,
-              decoration: const InputDecoration(labelText: 'Branch Code'),
-            ),
-            TextField(
-              controller: _deviceCtrl,
-              decoration: const InputDecoration(labelText: 'Device Name'),
-            ),
             if (_managerEmail != null) ...[
               const SizedBox(height: 12),
               Text('Logged in as: $_managerEmail'),
@@ -129,10 +98,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ElevatedButton(
               onPressed: _busy ? null : _saveBaseUrl,
               child: const Text('Save API base URL'),
-            ),
-            ElevatedButton(
-              onPressed: _busy ? null : _register,
-              child: const Text('Re-register device'),
             ),
             ElevatedButton(
               onPressed: _busy ? null : _sync,

@@ -7,7 +7,6 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 import '../services/api_service.dart';
 import '../services/face_recognition_service.dart';
-import '../services/face_storage_service.dart';
 import '../services/sync_service.dart';
 
 class RegisterEmployeeScreen extends StatefulWidget {
@@ -142,23 +141,13 @@ class _RegisterEmployeeScreenState extends State<RegisterEmployeeScreen> {
     });
     try {
       final bytes = await _capture!.readAsBytes();
-      final faceTemplate = _faceService.encodeEmbedding(_embedding!);
-      final emp = await widget.syncService.registerEmployee(
+      await widget.api.attachFace(
         employeeCode: _codeCtrl.text.trim(),
-        faceTemplate: faceTemplate,
         faceImageBase64: base64Encode(bytes),
       );
-      final savedPath = await FaceStorageService.saveFaceBytes(
-        bytes,
-        employeeId: emp.id,
-      );
-      emp.localImagePath = savedPath;
-      await widget.syncService.upsertEmployee(emp);
-
       if (!mounted) return;
-      setState(() =>
-          _status = 'Face saved. Awaiting admin approval if required.');
-      Navigator.of(context).pop(emp);
+      setState(() => _status = 'Face saved.');
+      Navigator.of(context).pop();
     } catch (e) {
       setState(() => _status = 'Registration failed: $e');
     } finally {
